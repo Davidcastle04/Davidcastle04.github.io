@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏰 CastleQuest — Castillos del Mundo</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Google Fonts: Cinzel (medieval display) + Crimson Text (body) -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ==================== MAP ==================== -->
+  <div id="map"></div>
+
+  <!-- ==================== SIDE MENU ==================== -->
+  <div id="side-menu">
+    <button id="menu-toggle" title="Menú" onclick="toggleMenu()">
+      <svg width="22" height="18" viewBox="0 0 22 18" fill="none">
+        <rect width="22" height="2.5" rx="1.25" fill="currentColor"/>
+        <rect y="7.75" width="16" height="2.5" rx="1.25" fill="currentColor"/>
+        <rect y="15.5" width="22" height="2.5" rx="1.25" fill="currentColor"/>
+      </svg>
+    </button>
+
+    <nav id="menu-panel">
+      <div class="menu-brand">🏰 CastleQuest</div>
+      <button class="menu-item" onclick="showRecentQueries()">
+        <span>📜</span> Consultas Recientes
+      </button>
+      <button class="menu-item" onclick="openSearchModal()">
+        <span>🔍</span> Nueva Consulta
+      </button>
+      <button class="menu-item" onclick="showCredits()">
+        <span>✨</span> Créditos
+      </button>
+    </nav>
+  </div>
+
+  <!-- ==================== SEARCH MODAL ==================== -->
+  <div id="search-modal" class="overlay">
+    <div class="modal-card" id="modal-card-main">
+
+      <!-- Top mini-tabs -->
+      <div class="modal-tabs">
+        <button class="tab active" onclick="switchTab(this,'tab-search')">🔍 Por Ciudad</button>
+        <button class="tab" onclick="switchTab(this,'tab-country')">🗺️ Por País</button>
+        <button class="tab" onclick="switchTab(this,'tab-world')">🌍 Mundo</button>
+      </div>
+
+      <!-- ---- Tab: By City ---- -->
+      <div id="tab-search" class="tab-pane active">
+        <div class="modal-hero">
+          <div class="hero-icon">🏰</div>
+          <h1>Consultemos los <span class="gold">Castillos</span><br>por el Mundo</h1>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">¿En qué país quieres explorar?</label>
+          <div class="select-wrap">
+            <select id="sel-country" onchange="onCountrySelect()">
+              <option value="">— Selecciona un país —</option>
+            </select>
+            <span class="select-arrow">⌄</span>
+          </div>
+          <p id="hint-countries" class="field-hint" style="display:none">
+            <span class="spinner-inline"></span> Cargando países desde WikiData…
+          </p>
+        </div>
+
+        <div id="city-field" class="field-group anim-slide" style="display:none">
+          <label class="field-label">¿Qué provincia o región?</label>
+          <div class="select-wrap">
+            <select id="sel-city" onchange="onCitySelect()">
+              <option value="">— Selecciona una provincia —</option>
+            </select>
+            <span class="select-arrow">⌄</span>
+          </div>
+          <p id="hint-cities" class="field-hint" style="display:none">
+            <span class="spinner-inline"></span> Cargando regiones…
+          </p>
+        </div>
+
+        <button id="btn-search-city" class="cta-btn" onclick="searchByCity()" disabled>
+          🔍 Consultar Castillos
+        </button>
+      </div>
+
+      <!-- ---- Tab: By Country ---- -->
+      <div id="tab-country" class="tab-pane">
+        <div class="modal-hero">
+          <div class="hero-icon">🗺️</div>
+          <h1>Castillos de <span class="gold">un País</span></h1>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Selecciona el país</label>
+          <div class="select-wrap">
+            <select id="sel-country-2">
+              <option value="">— Selecciona un país —</option>
+            </select>
+            <span class="select-arrow">⌄</span>
+          </div>
+        </div>
+
+        <button class="cta-btn" onclick="searchByCountry()">
+          🗺️ Ver Todos los Castillos del País
+        </button>
+      </div>
+
+      <!-- ---- Tab: World ---- -->
+      <div id="tab-world" class="tab-pane">
+        <div class="modal-hero">
+          <div class="hero-icon">🌍</div>
+          <h1>Todos los <span class="gold">Castillos</span><br>del Mundo</h1>
+        </div>
+        <div class="warning-box">
+          ⚠️ Esta consulta puede tardar varios minutos. Se aplicará un límite de 1.000 castillos.
+        </div>
+        <button class="cta-btn danger" onclick="searchAllCastles()">
+          🌍 Explorar el Mundo
+        </button>
+      </div>
+
+    </div><!-- /modal-card -->
+  </div><!-- /search-modal -->
+
+  <!-- ==================== RECENT QUERIES MODAL ==================== -->
+  <div id="recent-modal" class="overlay hidden" onclick="overlayClose(event,'recent-modal')">
+    <div class="modal-card compact">
+      <button class="modal-close" onclick="closeModal('recent-modal')">✕</button>
+      <h2 class="modal-sub-title">📜 Consultas Recientes</h2>
+      <div id="recent-container">
+        <p class="empty-state">Aún no has realizado ninguna consulta.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CREDITS MODAL ==================== -->
+  <div id="credits-modal" class="overlay hidden" onclick="overlayClose(event,'credits-modal')">
+    <div class="modal-card compact">
+      <button class="modal-close" onclick="closeModal('credits-modal')">✕</button>
+      <h2 class="modal-sub-title">✨ Créditos</h2>
+      <div class="credits-grid">
+        <div class="credit-row">
+          <span class="credit-icon">👤</span>
+          <div>
+            <strong>David Castillo Serrano</strong><br>
+            <em>Desarrollador</em>
+          </div>
+        </div>
+        <div class="credit-row">
+          <span class="credit-icon">📚</span>
+          <div>
+            <strong>Web Semántica Social</strong><br>
+            <em>Asignatura universitaria</em>
+          </div>
+        </div>
+        <div class="credit-row">
+          <span class="credit-icon">🤖</span>
+          <div>
+            <strong>Claude — Anthropic</strong><br>
+            <em>IA utilizada para el desarrollo</em>
+          </div>
+        </div>
+        <div class="credit-row">
+          <span class="credit-icon">🗄️</span>
+          <div>
+            <a href="https://www.wikidata.org" target="_blank" class="credit-link">WikiData</a><br>
+            <em>Base de datos de conocimiento</em>
+          </div>
+        </div>
+        <div class="credit-row">
+          <span class="credit-icon">🗺️</span>
+          <div>
+            <a href="https://leafletjs.com" target="_blank" class="credit-link">Leaflet.js</a><br>
+            <em>Mapas interactivos</em>
+          </div>
+        </div>
+        <div class="credit-row">
+          <span class="credit-icon">🌑</span>
+          <div>
+            <a href="https://carto.com" target="_blank" class="credit-link">CartoDB</a><br>
+            <em>Estilo del mapa oscuro</em>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== LOADING OVERLAY ==================== -->
+  <div id="global-loading" class="global-loading hidden">
+    <div class="loading-box">
+      <div class="loading-castle">🏰</div>
+      <p id="loading-msg">Consultando WikiData…</p>
+      <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- ==================== RESULTS BAR ==================== -->
+  <div id="results-bar" class="results-bar hidden">
+    <span id="results-info">🏰 0 castillos</span>
+    <button onclick="openSearchModal()" class="results-new-btn">+ Nueva Búsqueda</button>
+  </div>
+
+  <!-- ==================== LEAFLET JS ==================== -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- ==================== APP JS ==================== -->
+  <script>
+  // ─────────────────────────────────────────────────────────────────
+  // CONFIG
+  // ─────────────────────────────────────────────────────────────────
+  const SPARQL_ENDPOINT = 'https://query.wikidata.org/sparql';
+
+  // ─────────────────────────────────────────────────────────────────
+  // CACHE (localStorage)
+  // ─────────────────────────────────────────────────────────────────
+  function cacheGet(key) {
+    try { return JSON.parse(localStorage.getItem('cq_' + key)); }
+    catch (e) { return null; }
+  }
+  function cacheSet(key, data) {
+    try { localStorage.setItem('cq_' + key, JSON.stringify(data)); }
+    catch (e) { console.warn('localStorage full:', e); }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // SPARQL RUNNER
+  // ─────────────────────────────────────────────────────────────────
+  async function sparql(query) {
+    const url = `${SPARQL_ENDPOINT}?query=${encodeURIComponent(query)}&format=json`;
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/sparql-results+json' }
+    });
+    if (!res.ok) throw new Error(`SPARQL HTTP ${res.status}`);
+    const json = await res.json();
+    return json.results.bindings;
+  }
+
+  function qid(uri) {
+    return uri.split('/').pop();
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // QUERY 1 — PAÍSES DEL MUNDO
+  // ─────────────────────────────────────────────────────────────────
+  async function fetchCountries() {
+    const cached = cacheGet('countries');
+    if (cached) return cached;
+
+    const query = `
+      SELECT ?Paises ?PaisesLabel WHERE {
+        ?Paises wdt:P31 wd:Q6256.
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+      }`;
+
+    const rows = await sparql(query);
+    const data = rows
+      .map(r => ({ id: qid(r.Paises.value), label: r.PaisesLabel.value }))
+      .filter(c => !c.label.startsWith('Q'))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+
+    cacheSet('countries', data);
+    return data;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // QUERY 2 — PROVINCIAS / DIVISIONES ADMINISTRATIVAS DEL PAÍS X
+  // ─────────────────────────────────────────────────────────────────
+  async function fetchProvinces(countryId) {
+    const cached = cacheGet('prov_' + countryId);
+    if (cached) return cached;
+
+    // Q10864048 = primera división administrativa (provincias, estados, regiones…)
+    const query = `
+      SELECT DISTINCT ?Provincia ?ProvinciaLabel WHERE {
+        ?Provincia wdt:P31/wdt:P279* wd:Q10864048;
+                   wdt:P17 wd:${countryId}.
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+      }
+      ORDER BY ?ProvinciaLabel`;
+
+    const rows = await sparql(query);
+    const data = rows
+      .map(r => ({ id: qid(r.Provincia.value), label: r.ProvinciaLabel.value }))
+      .filter(p => !p.label.startsWith('Q'));
+
+    cacheSet('prov_' + countryId, data);
+    return data;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // QUERY 3 — CASTILLOS DE UNA CIUDAD / PROVINCIA
+  // ─────────────────────────────────────────────────────────────────
+  async function fetchCastlesByCity(cityId) {
+    const cached = cacheGet('cast_city_' + cityId);
+    if (cached) return cached;
+
+    const query = `
+      SELECT DISTINCT ?castilloLabel ?castilloDescription ?lat ?lon ?img WHERE {
+        ?castillo wdt:P31 wd:Q23413;
+                  wdt:P131* wd:${cityId}.
+
+        ?castillo p:P625/psv:P625 [
+          wikibase:geoLatitude ?lat;
+          wikibase:geoLongitude ?lon
+        ].
+
+        OPTIONAL { ?castillo wdt:P18 ?img. }
+
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+      }
+      ORDER BY ?castilloLabel`;
+
+    const rows = await sparql(query);
+    const data = rows.map(mapCastle);
+    cacheSet('cast_city_' + cityId, data);
+    return data;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // QUERY 4 — CASTILLOS DE UN PAÍS COMPLETO
+  // ─────────────────────────────────────────────────────────────────
+  async function fetchCastlesByCountry(countryId) {
+    const cached = cacheGet('cast_country_' + countryId);
+    if (cached) return cached;
+
+    const query = `
+      SELECT DISTINCT ?castilloLabel ?castilloDescription ?lat ?lon ?img WHERE {
+        ?castillo wdt:P31 wd:Q23413;
+                  wdt:P17 wd:${countryId}.
+
+        ?castillo p:P625/psv:P625 [
+          wikibase:geoLatitude ?lat;
+          wikibase:geoLongitude ?lon
+        ].
+
+        OPTIONAL { ?castillo wdt:P18 ?img. }
+
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+      }
+      ORDER BY ?castilloLabel
+      LIMIT 500`;
+
+    const rows = await sparql(query);
+    const data = rows.map(mapCastle);
+    cacheSet('cast_country_' + countryId, data);
+    return data;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // QUERY 5 — TODOS LOS CASTILLOS DEL MUNDO (limitado)
+  // ─────────────────────────────────────────────────────────────────
+  async function fetchAllCastles() {
+    const query = `
+      SELECT DISTINCT ?castilloLabel ?castilloDescription ?lat ?lon ?img WHERE {
+        ?castillo wdt:P31 wd:Q23413.
+
+        ?castillo p:P625/psv:P625 [
+          wikibase:geoLatitude ?lat;
+          wikibase:geoLongitude ?lon
+        ].
+
+        OPTIONAL { ?castillo wdt:P18 ?img. }
+
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+      }
+      ORDER BY ?castilloLabel
+      LIMIT 1000`;
+
+    return (await sparql(query)).map(mapCastle);
+  }
+
+  function mapCastle(r) {
+    return {
+      name:        r.castilloLabel?.value        || 'Castillo sin nombre',
+      description: r.castilloDescription?.value  || '',
+      lat:         parseFloat(r.lat.value),
+      lon:         parseFloat(r.lon.value),
+      img:         r.img?.value || null
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // MAP
+  // ─────────────────────────────────────────────────────────────────
+  let map;
+  let markerLayer = null;
+
+  function initMap() {
+    map = L.map('map', { zoomControl: false }).setView([30, 10], 2);
+
+    // Dark CartoDB tile
+    L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      {
+        attribution: '&copy; <a href="https://carto.com/">CartoDB</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }
+    ).addTo(map);
+
+    // Zoom controls bottom-right
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+  }
+
+  function createCastleIcon() {
+    return L.divIcon({
+      className: '',
+      html: `<div class="cq-marker">
+               <div class="cq-pin">🏰</div>
+               <div class="cq-shadow"></div>
+             </div>`,
+      iconSize: [44, 56],
+      iconAnchor: [22, 54],
+      popupAnchor: [0, -56]
+    });
+  }
+
+  function clearMarkers() {
+    if (markerLayer) {
+      map.removeLayer(markerLayer);
+      markerLayer = null;
+    }
+  }
+
+  function buildPopup(c) {
+    const img = c.img
+      ? `<div class="cp-img-wrap"><img src="${c.img}" alt="${c.name}" class="cp-img"
+            onerror="this.closest('.cp-img-wrap').style.display='none'"></div>`
+      : `<div class="cp-no-img">🏰</div>`;
+
+    const desc = c.description
+      ? `<p class="cp-desc">${c.description}</p>` : '';
+
+    return `<div class="castle-popup">
+      ${img}
+      <div class="cp-body">
+        <h3 class="cp-title">${c.name}</h3>
+        ${desc}
+        <div class="cp-coords">📍 ${c.lat.toFixed(4)}°, ${c.lon.toFixed(4)}°</div>
+        <a href="https://www.google.com/maps?q=${c.lat},${c.lon}"
+           target="_blank" class="cp-maps-btn">🗺️ Ver en Google Maps</a>
+      </div>
+    </div>`;
+  }
+
+  function displayCastles(castles, label) {
+    clearMarkers();
+    closeModal('search-modal');
+
+    if (castles.length === 0) {
+      alert('No se encontraron castillos para esta búsqueda. Prueba con otro país o región.');
+      openSearchModal();
+      return;
+    }
+
+    const icon  = createCastleIcon();
+    const group = L.featureGroup();
+
+    castles.forEach(c => {
+      L.marker([c.lat, c.lon], { icon })
+        .bindPopup(buildPopup(c), { maxWidth: 300, className: 'cq-popup-wrap' })
+        .addTo(group);
+    });
+
+    group.addTo(map);
+    markerLayer = group;
+
+    map.fitBounds(group.getBounds(), { padding: [60, 60], maxZoom: 12 });
+
+    // Results bar
+    const bar  = document.getElementById('results-bar');
+    const info = document.getElementById('results-info');
+    info.textContent = `🏰 ${castles.length} castillos — ${label}`;
+    bar.classList.remove('hidden');
+
+    // Save to history
+    saveRecent(label, castles.length);
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // RECENT QUERIES
+  // ─────────────────────────────────────────────────────────────────
+  function saveRecent(label, count) {
+    let list = cacheGet('recent') || [];
+    list.unshift({ label, count, date: new Date().toLocaleDateString('es-ES') });
+    list = list.slice(0, 10);
+    cacheSet('recent', list);
+  }
+
+  function showRecentQueries() {
+    closeMenuPanel();
+    const list = cacheGet('recent') || [];
+    const container = document.getElementById('recent-container');
+
+    if (list.length === 0) {
+      container.innerHTML = '<p class="empty-state">Aún no has realizado ninguna consulta.</p>';
+    } else {
+      container.innerHTML = list.map(q => `
+        <div class="recent-item">
+          <div class="recent-label">🏰 ${q.label}</div>
+          <div class="recent-meta">${q.count} castillos &bull; ${q.date}</div>
+        </div>`).join('');
+    }
+    document.getElementById('recent-modal').classList.remove('hidden');
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // UI HELPERS
+  // ─────────────────────────────────────────────────────────────────
+  function toggleMenu() {
+    document.getElementById('menu-panel').classList.toggle('open');
+  }
+  function closeMenuPanel() {
+    document.getElementById('menu-panel').classList.remove('open');
+  }
+  function openSearchModal() {
+    closeMenuPanel();
+    document.getElementById('search-modal').classList.remove('hidden');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+  }
+  function overlayClose(e, id) {
+    if (e.target.id === id) closeModal(id);
+  }
+  function showCredits() {
+    closeMenuPanel();
+    document.getElementById('credits-modal').classList.remove('hidden');
+  }
+
+  function switchTab(btn, targetId) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(targetId).classList.add('active');
+  }
+
+  function showLoading(msg) {
+    document.getElementById('loading-msg').textContent = msg || 'Consultando WikiData…';
+    document.getElementById('progress-bar').style.width = '0%';
+    document.getElementById('global-loading').classList.remove('hidden');
+    // Fake progress animation
+    let w = 0;
+    clearInterval(window._progInterval);
+    window._progInterval = setInterval(() => {
+      w = Math.min(w + Math.random() * 8, 90);
+      document.getElementById('progress-bar').style.width = w + '%';
+    }, 300);
+  }
+
+  function hideLoading() {
+    document.getElementById('progress-bar').style.width = '100%';
+    clearInterval(window._progInterval);
+    setTimeout(() => {
+      document.getElementById('global-loading').classList.add('hidden');
+    }, 400);
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // SELECT HANDLERS
+  // ─────────────────────────────────────────────────────────────────
+  async function onCountrySelect() {
+    const sel = document.getElementById('sel-country');
+    const id  = sel.value;
+    if (!id) return;
+
+    const cityField  = document.getElementById('city-field');
+    const hintCities = document.getElementById('hint-cities');
+    const selCity    = document.getElementById('sel-city');
+    const btnSearch  = document.getElementById('btn-search-city');
+
+    cityField.style.display = 'block';
+    hintCities.style.display = 'block';
+    selCity.innerHTML = '<option value="">Cargando…</option>';
+    btnSearch.disabled = true;
+
+    // Sync country tab 2 select
+    document.getElementById('sel-country-2').value = id;
+
+    try {
+      const provinces = await fetchProvinces(id);
+      if (provinces.length === 0) {
+        selCity.innerHTML = '<option value="">No se encontraron regiones</option>';
+      } else {
+        selCity.innerHTML = '<option value="">— Selecciona una provincia —</option>' +
+          provinces.map(p => `<option value="${p.id}">${p.label}</option>`).join('');
+      }
+    } catch (e) {
+      console.error(e);
+      selCity.innerHTML = '<option value="">❌ Error al cargar</option>';
+    } finally {
+      hintCities.style.display = 'none';
+    }
+  }
+
+  function onCitySelect() {
+    const val = document.getElementById('sel-city').value;
+    document.getElementById('btn-search-city').disabled = !val;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // SEARCH ACTIONS
+  // ─────────────────────────────────────────────────────────────────
+  async function searchByCity() {
+    const cityId  = document.getElementById('sel-city').value;
+    if (!cityId) return;
+
+    const cityLbl    = document.getElementById('sel-city').selectedOptions[0]?.text || '';
+    const countryLbl = document.getElementById('sel-country').selectedOptions[0]?.text || '';
+
+    showLoading(`Buscando castillos en ${cityLbl}…`);
+    try {
+      const castles = await fetchCastlesByCity(cityId);
+      displayCastles(castles, `${cityLbl} (${countryLbl})`);
+    } catch (e) {
+      console.error(e);
+      alert('Error al consultar WikiData. Comprueba tu conexión e inténtalo de nuevo.');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function searchByCountry() {
+    const sel = document.getElementById('sel-country-2');
+    const id  = sel.value;
+    if (!id) { alert('Por favor selecciona un país.'); return; }
+
+    const lbl = sel.selectedOptions[0]?.text || '';
+    showLoading(`Buscando castillos en ${lbl}…`);
+    try {
+      const castles = await fetchCastlesByCountry(id);
+      displayCastles(castles, lbl);
+    } catch (e) {
+      console.error(e);
+      alert('Error al consultar WikiData. Inténtalo de nuevo.');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function searchAllCastles() {
+    showLoading('Cargando castillos del mundo… (puede tardar)');
+    try {
+      const castles = await fetchAllCastles();
+      displayCastles(castles, 'Todo el Mundo 🌍');
+    } catch (e) {
+      console.error(e);
+      alert('Error al consultar WikiData. Inténtalo de nuevo.');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // CLOSE MENU ON OUTSIDE CLICK
+  // ─────────────────────────────────────────────────────────────────
+  document.addEventListener('click', e => {
+    const menu = document.getElementById('side-menu');
+    if (menu && !menu.contains(e.target)) closeMenuPanel();
+  });
+
+  // Close search modal on overlay click (only if markers exist)
+  document.getElementById('search-modal').addEventListener('click', function (e) {
+    if (e.target === this && markerLayer) this.classList.add('hidden');
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // INIT
+  // ─────────────────────────────────────────────────────────────────
+  async function init() {
+    initMap();
+
+    const hint = document.getElementById('hint-countries');
+    hint.style.display = 'block';
+
+    try {
+      const countries = await fetchCountries();
+      const opts = countries.map(c => `<option value="${c.id}">${c.label}</option>`).join('');
+      const base = '<option value="">— Selecciona un país —</option>';
+
+      document.getElementById('sel-country').innerHTML  = base + opts;
+      document.getElementById('sel-country-2').innerHTML = base + opts;
+    } catch (e) {
+      console.error('Error cargando países:', e);
+      hint.textContent = '❌ Error al cargar países. Recarga la página.';
+      return;
+    }
+
+    hint.style.display = 'none';
+  }
+
+  init();
+  </script>
+</body>
+</html>
