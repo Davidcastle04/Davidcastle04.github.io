@@ -272,27 +272,49 @@
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // QUERY 2 — PROVINCIAS / DIVISIONES ADMINISTRATIVAS DEL PAÍS X
+  // QUERY 2 — DIVISIONES ADMINISTRATIVAS DEL PAÍS X
+  // Para España (Q29): UNION de 1ª división (CC.AA.) + 2ª (provincias)
+  // Para el resto: solo 1ª división administrativa
   // ─────────────────────────────────────────────────────────────────
   async function fetchProvinces(countryId) {
-    const cached = cacheGet('prov_' + countryId);
+    const cacheKey = 'prov2_' + countryId;
+    const cached = cacheGet(cacheKey);
     if (cached) return cached;
 
-    // Q10864048 = primera división administrativa (provincias, estados, regiones…)
-    const query = `
-      SELECT DISTINCT ?Provincia ?ProvinciaLabel WHERE {
-        ?Provincia wdt:P31/wdt:P279* wd:Q10864048;
-                   wdt:P17 wd:${countryId}.
-        SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
-      }
-      ORDER BY ?ProvinciaLabel`;
+    let query;
+    if (countryId === 'Q29') {
+      // España: incluimos tanto Comunidades Autónomas (Q10864048)
+      // como Provincias (Q13220204) para que aparezcan Jaén, Córdoba, etc.
+      query = `
+        SELECT DISTINCT ?Div ?DivLabel WHERE {
+          {
+            ?Div wdt:P31/wdt:P279* wd:Q10864048 ;
+                 wdt:P17 wd:Q29 .
+          } UNION {
+            ?Div wdt:P31/wdt:P279* wd:Q13220204 ;
+                 wdt:P17 wd:Q29 .
+          }
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+        }
+        ORDER BY ?DivLabel`;
+    } else {
+      // Resto de países: primera división administrativa (estados, regiones, länder…)
+      query = `
+        SELECT DISTINCT ?Div ?DivLabel WHERE {
+          ?Div wdt:P31/wdt:P279* wd:Q10864048 ;
+               wdt:P17 wd:${countryId} .
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+        }
+        ORDER BY ?DivLabel`;
+    }
 
     const rows = await sparql(query);
     const data = rows
-      .map(r => ({ id: qid(r.Provincia.value), label: r.ProvinciaLabel.value }))
-      .filter(p => !p.label.startsWith('Q'));
+      .map(r => ({ id: qid(r.Div.value), label: r.DivLabel.value }))
+      .filter(p => !p.label.startsWith('Q'))
+      .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i); // dedup
 
-    cacheSet('prov_' + countryId, data);
+    cacheSet(cacheKey, data);
     return data;
   }
 
@@ -356,9 +378,12 @@
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // QUERY 5 — TODOS LOS CASTILLOS DEL MUNDO (limitado)
+  // QUERY 5 — TODOS LOS CASTILLOS DEL MUNDO (limitado a 1000)
   // ─────────────────────────────────────────────────────────────────
   async function fetchAllCastles() {
+    const cached = cacheGet('cast_world');
+    if (cached) return cached;
+
     const query = `
       SELECT DISTINCT ?castilloLabel ?castilloDescription ?lat ?lon ?img WHERE {
         ?castillo wdt:P31 wd:Q23413.
@@ -375,7 +400,9 @@
       ORDER BY ?castilloLabel
       LIMIT 1000`;
 
-    return (await sparql(query)).map(mapCastle);
+    const data = (await sparql(query)).map(mapCastle);
+    cacheSet('cast_world', data);
+    return data;
   }
 
   function mapCastle(r) {

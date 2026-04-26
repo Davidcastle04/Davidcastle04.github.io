@@ -1,28 +1,13 @@
-# 🏰 CastleQuest — Castillos del Mundo
+# Práctica 7: aplicación en SPARQL
+## 🏰 CastleQuest — Castillos del Mundo
 
-> Aplicación web semántica para explorar castillos de todo el mundo, construida con WikiData, SPARQL y Leaflet.js.
 
 **Autor:** David Castillo Serrano  
 **Asignatura:** Web Semántica Social  
-**IA utilizada:** [Claude](https://www.anthropic.com/claude) de Anthropic
+**IA utilizada para el diseño de la App:** Claude
 
----
-
-## 📸 Capturas de pantalla
-
-*[Añade aquí una captura del modal inicial con el formulario de búsqueda]*
-
----
-
-*[Añade aquí una captura del mapa con los marcadores de castillos desplegados]*
-
----
-
-*[Añade aquí una captura de un pop-up de castillo con imagen y descripción]*
-
----
-
-*[Añade aquí una captura del menú lateral izquierdo abierto]*
+>[!TIP]
+> Aplicación web semántica para explorar castillos de todo el mundo, construida con WikiData, SPARQL y Leaflet.js.
 
 ---
 
@@ -68,7 +53,7 @@ CastleQuest es una aplicación web estática (sin backend) que permite consultar
 - Todas las consultas se almacenan en `localStorage` del navegador.
 - Si se repite la misma búsqueda, los datos se sirven desde el caché local sin volver a llamar a WikiData.
 - Las claves siguen el patrón `cq_countries`, `cq_prov_{QID}`, `cq_cast_city_{QID}`, etc.
-
+![alt text](<Capturas/Cachear información.png>)
 ---
 
 ## 🔎 Consultas SPARQL explicadas
@@ -122,6 +107,30 @@ Igual que la anterior pero filtrando por `wdt:P17` (país) en lugar de `wdt:P131
 Sin filtro geográfico, con `LIMIT 1000` para no sobrecargar el endpoint.
 
 ---
+## 📸 Capturas de pantalla
+
+Pantalla de Inicio de la Web de CastleQuest
+![\[!\]](<Capturas/Pantalla Inicio.png>)
+
+---
+Un pequeño ejemplo de las ciudades de los Emiratos Árabes Unídos
+![](<Capturas/Pantalla de provincias y ciudades de Emiratos Árabes Unidos.png>)
+
+---
+Foto del Pop-Up de uno de los castillos de Galicia
+
+![*\Foto del Pop-Up del castillo de ejemplo de galicia*](<Capturas/Pop-Up del castillo de galicia.png>)
+
+---
+Menú Lateral con diversas opciones 
+![alt text](<Capturas/Menu lateral.png>)
+1. Opción de búsquedas recientes 
+![alt text](<Capturas/Busquedas Recientes.png>)
+2. Opción de Busqueda Nueva
+![alt text](<Capturas/Pantalla Inicio.png>)
+3. Opción de los creditos
+![alt text](<Capturas/Pantalla de los creditos.png>)
+---
 
 ## 📁 Estructura del proyecto
 
@@ -135,13 +144,13 @@ castlequest/
 
 ---
 
-## 🚀 Cómo desplegar en GitHub Pages
+## 🚀 Cómo ha sido desplegado en GitHub Pages
 
-1. Crea un repositorio en GitHub (puede ser público o privado con GitHub Pro).
-2. Sube los tres archivos (`index.html`, `styles.css`, `README.md`) a la rama `main`.
-3. Ve a **Settings → Pages → Source** y selecciona la rama `main`, carpeta raíz `/`.
-4. GitHub generará una URL del tipo `https://{tu-usuario}.github.io/{nombre-repo}/`.
-5. Accede a esa URL y la aplicación estará lista.
+1. Creamos un repositorio en GitHub 
+2. Subimos los 4 archivos que hemos generado (`index.html`, `styles.css`, `README.md` y `claude.md`) a la rama `main`.
+3. Vamos a **Settings → Pages → Source** y selecciona la rama `main`, carpeta raíz `/`.
+4. GitHub generará una URL del tipo `https://davidcastle04.github.io`.
+5. Accedemos a está URL y la aplicación ya estará lista.
 
 > **Nota:** la aplicación no requiere servidor ni instalación de dependencias. Todo funciona desde el navegador del usuario.
 
@@ -149,8 +158,8 @@ castlequest/
 
 ## ⚙️ Cómo usar localmente
 
-Simplemente abre `index.html` en cualquier navegador moderno. No requiere instalación ni servidor local.
-
+Simplemente abrimos `index.html` en cualquier navegador moderno. No requiere instalación ni servidor local.
+>[!CAUTION]
 > Si el navegador bloquea las peticiones CORS al ejecutar desde `file://`, puedes arrancar un servidor simple con:
 > ```bash
 > python3 -m http.server 8080
@@ -161,7 +170,7 @@ Simplemente abre `index.html` en cualquier navegador moderno. No requiere instal
 
 ## 📝 Proceso de desarrollo
 
-El desarrollo de esta aplicación siguió los siguientes pasos, definidos en colaboración con la IA Claude (Anthropic):
+El desarrollo de esta aplicación siguió los siguientes pasos, definidos en colaboración con el diseño de la IA Claude:
 
 1. **Diseño de la arquitectura:** aplicación completamente estática (HTML + CSS + JS), sin backend, desplegable en GitHub Pages.
 2. **Definición de las consultas SPARQL** sobre WikiData para obtener países, divisiones administrativas y castillos con coordenadas.
@@ -170,6 +179,13 @@ El desarrollo de esta aplicación siguió los siguientes pasos, definidos en col
 5. **Diseño visual** con estética medieval oscura: fuente Cinzel, paleta dorada y azul noche, glassmorphism, animaciones CSS.
 6. **Flujo de usuario:** modal inicial → selección de país → selección de provincia → consulta → marcadores en el mapa.
 7. **Funcionalidades adicionales:** historial de consultas recientes, búsqueda por país completo y búsqueda global.
+
+---
+## Web donde podemos consultar la página
+
+La pagina es [enlace a Github -> https://davidcastle04.github.io](https://davidcastle04.github.io).
+
+
 
 ---
 
