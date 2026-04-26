@@ -183,8 +183,10 @@ El desarrollo de esta aplicación siguió los siguientes pasos, definidos en col
 ---
 ## Web donde podemos consultar la página
 
-La pagina es [enlace a Github -> https://davidcastle04.github.io](https://davidcastle04.github.io).
+La pagina es [enlace a la pagina de Github Pages-> https://davidcastle04.github.io](https://davidcastle04.github.io).
 
+## Enlace al repositorio de Github
+La pagina es [enlace a Github -> https://github.com/Davidcastle04/Davidcastle04.github.io](https://github.com/Davidcastle04/Davidcastle04.github.io).
 
 
 ---
